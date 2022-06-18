@@ -1,16 +1,24 @@
 # ASDM Version Scanner
 
+The ASDM Version Scanner will load a CSV of IP addresses and ports and attempt to connect to `/admin/public/index.html` via HTTPS. Once successfully connected, the script will then attempt to extract the ASDM version number from the page's `<title>`. I use the script like so:
+
+## Step 1: Download potential targets from Shodan
+
 ```
 shodan download --limit -1 title_cisco_asdm title:"Cisco\ ASDM"
 shodan download --limit -1 default_ssl ssl:"ASA\ Temporary\ Self\ Signed\ Certificate"
 shodan download --limit -1 webvpn_cookie "Set-Cookie: webvpn_portal"
 ```
 
+## Step 2: Extract the IP and ports into csv files
+
 ```
 shodan parse --fields ip_str,port --separator , title_cisco_asdm.json.gz > title.csv
 shodan parse --fields ip_str,port --separator , default_ssl.json.gz > default.csv
 shodan parse --fields ip_str,port --separator , webvpn_cookie.json.gz > webvpn.csv
 ```
+
+## Step 3: Remove duplicates
 
 ```
 cat title.csv > all.csv
@@ -21,9 +29,13 @@ wc -l all_uniq.csv
 $ 212874 all_uniq.csv
 ```
 
+## Step 4: Begin scanning
+
 ```
 python3 asdm_version_scanner.py --csv ./data/06152022.csv > ./output/06152022.txt
 ```
+
+## Step 5: Sort and count the collected data
 
 ```
 cat 06152022.txt | grep -oP 'Cisco ASDM \d\.\d.*$' | sort | uniq -c | sort -nr
